@@ -84,17 +84,24 @@ class _PetLogScreenState extends State<PetLogScreen> {
     if (filteredLogs.isEmpty) {
       return [];
     }
-
     final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-
-    // Filter to only include 'PetDetected' entries
-    final detectedLogs = filteredLogs.where((log) => log.petStatus == 'PetDetected').toList();
-
-    return detectedLogs.map<FlSpot>((log) {
-      final x = 1.0; // Always 1.0 for 'Detected' on the X-axis
-      final y = log.timestamp.difference(startOfDay).inMinutes.toDouble();
+    return filteredLogs.map<FlSpot>((log) {
+      final x = log.timestamp.difference(startOfDay).inMinutes.toDouble();
+      final y = log.petStatus.toLowerCase() == 'petdetected' ? 1.0 : 0.0;
       return FlSpot(x, y);
     }).toList();
+  }
+
+  double get minLogMinute {
+    if (filteredLogs.isEmpty) return 0.0;
+    final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    return filteredLogs.map((log) => log.timestamp.difference(startOfDay).inMinutes.toDouble()).reduce((a, b) => a < b ? a : b);
+  }
+
+  double get maxLogMinute {
+    if (filteredLogs.isEmpty) return 60.0;
+    final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    return filteredLogs.map((log) => log.timestamp.difference(startOfDay).inMinutes.toDouble()).reduce((a, b) => a > b ? a : b);
   }
 
   @override
@@ -110,6 +117,7 @@ class _PetLogScreenState extends State<PetLogScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
+          automaticallyImplyLeading: false, 
           title: Text(
             'HydraPets',
             style: GoogleFonts.righteous(
@@ -210,23 +218,23 @@ class _PetLogScreenState extends State<PetLogScreen> {
                                   ? const Center(child: Text('No detection data for this day'))
                                   : LineChart(
                                       LineChartData(
-                                        minX: 0.8, // Adjust minX to focus on 'Detected'
-                                        maxX: 1.2, // Adjust maxX to focus on 'Detected'
-                                        minY: 0.0,
-                                        maxY: 1440.0, // 24 hours * 60 minutes
+                                        minX: minLogMinute,
+                                        maxX: maxLogMinute,
+                                        minY: -0.1,
+                                        maxY: 1.1,
                                         gridData: FlGridData(
                                           show: true,
-                                          drawHorizontalLine: true, // Draw horizontal lines for time intervals
-                                          drawVerticalLine: false, // No vertical lines needed as X-axis is fixed
-                                          horizontalInterval: 30.0, // Every 30 minutes for Y-axis
-                                          // verticalInterval: 1.0, // Not strictly needed as X is fixed
+                                          drawHorizontalLine: true,
+                                          drawVerticalLine: true,
+                                          horizontalInterval: 1.0,
+                                          verticalInterval: 15.0, // every 15 minutes
                                           getDrawingHorizontalLine: (value) => FlLine(
                                             color: Colors.grey.withOpacity(0.2),
                                             strokeWidth: 1,
                                           ),
                                           getDrawingVerticalLine: (value) => FlLine(
-                                            color: Colors.transparent, // Make vertical lines transparent
-                                            strokeWidth: 0,
+                                            color: Colors.grey.withOpacity(0.2),
+                                            strokeWidth: 1,
                                           ),
                                         ),
                                         borderData: FlBorderData(
@@ -241,34 +249,6 @@ class _PetLogScreenState extends State<PetLogScreen> {
                                             axisNameWidget: Padding(
                                               padding: const EdgeInsets.only(left: 8.0),
                                               child: Text(
-                                                'Time (5 hours)',
-                                                style: GoogleFonts.montserrat(
-                                                  color: Colors.green[700],
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14,
-                                                ),
-                                              ),
-                                            ),
-                                            sideTitles: SideTitles(
-                                              showTitles: true,
-                                              reservedSize: 40,
-                                              interval: 300.0, // Every 5 hours (5 * 60 minutes)
-                                              getTitlesWidget: (value, meta) {
-                                                final timeFromValue = selectedDate.add(Duration(minutes: value.toInt()));
-                                                return Padding(
-                                                  padding: const EdgeInsets.only(right: 4.0),
-                                                  child: Text(
-                                                    DateFormat('HH:mm').format(timeFromValue),
-                                                    style: GoogleFonts.montserrat(fontSize: 11, color: Colors.green[900]),
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                          bottomTitles: AxisTitles(
-                                            axisNameWidget: Padding(
-                                              padding: const EdgeInsets.only(top: 8.0),
-                                              child: Text(
                                                 'Pet Detected',
                                                 style: GoogleFonts.montserrat(
                                                   color: Colors.green[700],
@@ -279,14 +259,46 @@ class _PetLogScreenState extends State<PetLogScreen> {
                                             ),
                                             sideTitles: SideTitles(
                                               showTitles: true,
-                                              reservedSize: 60,
+                                              reservedSize: 40,
                                               interval: 1.0,
                                               getTitlesWidget: (value, meta) {
-                                                String text = '';
-                                                if (value.toInt() == 1) {
-                                                  text = 'Detected';
+                                                if (value == 1.0) {
+                                                  return Text('Detected', style: GoogleFonts.montserrat(fontSize: 12, color: Colors.green[900]));
+                                                } else if (value == 0.0) {
+                                                  return Text('No Pet', style: GoogleFonts.montserrat(fontSize: 12, color: Colors.green[900]));
                                                 }
-                                                return Text(text, style: GoogleFonts.montserrat(color: Colors.green[700], fontSize: 12));
+                                                return const SizedBox.shrink();
+                                              },
+                                            ),
+                                          ),
+                                          bottomTitles: AxisTitles(
+                                            axisNameWidget: Padding(
+                                              padding: const EdgeInsets.only(top: 8.0),
+                                              child: Text(
+                                                'Time',
+                                                style: GoogleFonts.montserrat(
+                                                  color: Colors.green[700],
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                            sideTitles: SideTitles(
+                                              showTitles: true,
+                                              reservedSize: 40,
+                                              interval: 1.0, // not used, custom logic below
+                                              getTitlesWidget: (value, meta) {
+                                                final minX = minLogMinute;
+                                                final maxX = maxLogMinute;
+                                                // Show only for start and end
+                                                if ((value - minX).abs() < 1e-2) {
+                                                  final time = selectedDate.add(Duration(minutes: minX.toInt()));
+                                                  return Text(DateFormat('HH:mm').format(time), style: GoogleFonts.montserrat(fontSize: 11, color: Colors.green[900]));
+                                                } else if ((value - maxX).abs() < 1e-2) {
+                                                  final time = selectedDate.add(Duration(minutes: maxX.toInt()));
+                                                  return Text(DateFormat('HH:mm').format(time), style: GoogleFonts.montserrat(fontSize: 11, color: Colors.green[900]));
+                                                }
+                                                return const SizedBox.shrink();
                                               },
                                             ),
                                           ),
@@ -296,13 +308,12 @@ class _PetLogScreenState extends State<PetLogScreen> {
                                         lineBarsData: [
                                           LineChartBarData(
                                             spots: getDetectionSpots(),
-                                            isCurved: false, // Not curved for status changes
+                                            isCurved: false,
                                             barWidth: 3,
-                                            color: Colors.green, // Line color
-                                            dotData: FlDotData(show: true), // Show data points
-                                            belowBarData: BarAreaData(
-                                              show: false, // No area below for single status
-                                            ),
+                                            color: Colors.green,
+                                            dotData: FlDotData(show: true),
+                                            belowBarData: BarAreaData(show: false),
+                                            isStepLineChart: true,
                                           ),
                                         ],
                                         lineTouchData: LineTouchData(
@@ -310,17 +321,13 @@ class _PetLogScreenState extends State<PetLogScreen> {
                                           touchTooltipData: LineTouchTooltipData(
                                             getTooltipItems: (spots) {
                                               return spots.map((spot) {
-                                                // The 'spot.x' here is pet status (0 or 1), 'spot.y' is time
-                                                final time = selectedDate.add(Duration(minutes: spot.y.toInt()));
-                                                // Find the closest log entry with PetDetected status for tooltip
-                                                final closestLog = filteredLogs.firstWhere(
-                                                  (log) => (log.petStatus == 'PetDetected' && log.timestamp.difference(time).abs().inMinutes <= 5), 
-                                                  orElse: () => PetLogData(petId: -1, petStatus: 'N/A', ledStatus: 'N/A', timestamp: DateTime.now()),
-                                                );
+                                                final time = selectedDate.add(Duration(minutes: spot.x.toInt()));
+                                                final status = spot.y == 1.0 ? 'Detected' : 'No Pet';
+                                                // Find the closest log entry for tooltip
+                                                final closestLog = filteredLogs.reduce((a, b) => (a.timestamp.difference(time).abs() < b.timestamp.difference(time).abs()) ? a : b);
                                                 final ledStatus = closestLog.ledStatus;
-
                                                 return LineTooltipItem(
-                                                  'Time: ${DateFormat('HH:mm').format(time)}\nStatus: Detected\nLED: $ledStatus',
+                                                  'Time: ${DateFormat('HH:mm').format(time)}\nStatus: $status\nLED: $ledStatus',
                                                   GoogleFonts.montserrat(
                                                     color: Colors.white,
                                                     fontWeight: FontWeight.bold,

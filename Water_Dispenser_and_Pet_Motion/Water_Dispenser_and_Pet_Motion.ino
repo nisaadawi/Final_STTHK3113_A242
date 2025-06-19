@@ -30,15 +30,16 @@ const char* logPetURL = "https://humancc.site/ndhos/Pet_Water_Dispenser/log_pet.
 const char* waterLogURL = "https://humancc.site/ndhos/Pet_Water_Dispenser/log_water.php";
 
 // Thresholds
-const int waterThreshold = 1000;  // analog value
-const int overflowDistance = 5;   // cm
-const int maxDistance = 30;       // cm (maximum distance for percentage calculation)
+const int lowDistanceThreshold = 11; // cm
+const int lowWaterLevelThreshold = 1000; // analog value
+const int highWaterLevelThreshold = 1300; // analog value
+const int highDistanceThreshold = 6; // cm
 
 // Timing
 unsigned long lastSensorCheck = 0;
 const unsigned long sensorInterval = 10000;
 
-// Relay status tracking
+// Initial Relay status tracking
 String currentRelayStatus = "OFF";
 
 void setup() {
@@ -73,6 +74,8 @@ void setup() {
     Serial.print(".");
   }
   Serial.println("\nWiFi connected!");
+
+  analogSetPinAttenuation(36, ADC_11db); // for full 0-3.3V range
 }
 
 void loop() {
@@ -138,21 +141,36 @@ void loop() {
     display.display();
 
     // Conditions for Water sensor
-    if (waterLevel < waterThreshold) {
+    if (waterLevel < lowWaterLevelThreshold && distance >= lowDistanceThreshold) {
+      // Empty
+      digitalWrite(RELAY_PIN, LOW);
+      currentRelayStatus = "ON";
+      status = "Empty";
+      Serial.println(currentRelayStatus);
+      Serial.println("Status: Empty, Relay ON");
+    } else if (waterLevel < lowWaterLevelThreshold) {
+      // Low
       digitalWrite(RELAY_PIN, LOW);
       currentRelayStatus = "ON";
       status = "Low";
+      Serial.println(currentRelayStatus);
       Serial.println("Status: Low, Relay ON");
-    } else if (waterLevel >= waterThreshold && distance <= overflowDistance) {
-      digitalWrite(RELAY_PIN, HIGH);
-      currentRelayStatus = "OFF";
-      status = "Overflow";
-      Serial.println("Status: Overflow, Relay OFF");
-    } else if (waterLevel >= waterThreshold && distance > overflowDistance) {
+    } else if (waterLevel >= lowWaterLevelThreshold && waterLevel <= highWaterLevelThreshold) {
+      // Normal
       digitalWrite(RELAY_PIN, HIGH);
       currentRelayStatus = "OFF";
       status = "Normal";
       Serial.println("Status: Normal, Relay OFF");
+    } else if (waterLevel > highWaterLevelThreshold && distance < highDistanceThreshold) {
+      // Overflow
+      digitalWrite(RELAY_PIN, HIGH);
+      currentRelayStatus = "OFF";
+      status = "Overflow";
+      Serial.println("Status: Overflow, Relay OFF");
+    } else {
+      status = "Unknown";
+      digitalWrite(RELAY_PIN, HIGH);
+      currentRelayStatus = "OFF";
     }
 
     if (status != "") {
@@ -173,9 +191,9 @@ long readUltrasonicDistance() {
 
 // Calculate Water Percentage
 int calculateWaterPercentage(long distance) {
-  if (distance <= overflowDistance) return 100;
-  if (distance >= maxDistance) return 0;
-  return map(distance, overflowDistance, maxDistance, 100, 0);
+  if (distance <= highDistanceThreshold) return 100;
+  if (distance >= lowDistanceThreshold) return 0;
+  return map(distance, highDistanceThreshold, lowDistanceThreshold, 100, 0);
 }
 
 // Send Log Pet Detection (with status)
@@ -196,11 +214,10 @@ void logPetPresence(String petStatus, String ledStatus) {
   } else {
     Serial.println("Failed to log pet: " + https.errorToString(httpCode));
   }
-  https.end();
 }
 
-// --- Log Water Status ---
-void logWaterStatus(String status, int waterLevel, int waterPercentage, String relayStatus) {
+// Log Water Status
+void logWaterStatus(String status, int waterLevel, int waterPercentage, String currentRelayStatus) {
   if (WiFi.status() != WL_CONNECTED) return;
 
   WiFiClientSecure client;
@@ -210,7 +227,7 @@ void logWaterStatus(String status, int waterLevel, int waterPercentage, String r
   String url = String(waterLogURL) + "?water_level=" + String(waterLevel) +
                "&water_percentage=" + String(waterPercentage) +
                "&water_status=" + status +
-               "&relay_status=" + relayStatus;
+               "&relay_status=" + currentRelayStatus;
   https.begin(client, url);
   int httpCode = https.GET();
 

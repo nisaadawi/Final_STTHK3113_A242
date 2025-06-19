@@ -21,8 +21,7 @@ class _WaterLogState extends State<WaterLog> {
   List<dynamic> filteredLogs = [];
   bool isLoading = true;
   DateTime selectedDate = DateTime.now();
-  final int waterThreshold =
-      1000; // Your water tank threshold, used for Y-axis max
+  final int waterThreshold = 2000; // Your water tank threshold, used for Y-axis max
 
   @override
   void initState() {
@@ -125,6 +124,18 @@ class _WaterLogState extends State<WaterLog> {
     }).toList();
   }
 
+  double get minLogMinute {
+    if (filteredLogs.isEmpty) return 0.0;
+    final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    return filteredLogs.map((log) => DateTime.parse(log['timestamp']).difference(startOfDay).inMinutes.toDouble()).reduce((a, b) => a < b ? a : b);
+  }
+
+  double get maxLogMinute {
+    if (filteredLogs.isEmpty) return 60.0;
+    final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    return filteredLogs.map((log) => DateTime.parse(log['timestamp']).difference(startOfDay).inMinutes.toDouble()).reduce((a, b) => a > b ? a : b);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -138,6 +149,7 @@ class _WaterLogState extends State<WaterLog> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
+          automaticallyImplyLeading: false, 
           title: Text(
             'HydraPets',
             style: GoogleFonts.righteous(
@@ -256,7 +268,7 @@ class _WaterLogState extends State<WaterLog> {
                                     )
                                   : LineChart(
                                       LineChartData(
-                                        maxY: 1000.0,
+                                        maxY: 2000.0,
                                         minY: 0,
                                         lineTouchData: LineTouchData(
                                           enabled: true,
@@ -346,14 +358,11 @@ class _WaterLogState extends State<WaterLog> {
                                           ),
                                           bottomTitles: AxisTitles(
                                             axisNameWidget: Padding(
-                                              padding: const EdgeInsets.only(
-                                                top: 8.0,
-                                              ),
+                                              padding: EdgeInsets.only(top: 8.0),
                                               child: Text(
-                                                'Time (30 minutes)', // X-axis label
+                                                'Time (30 minutes)',
                                                 style: GoogleFonts.montserrat(
-                                                  color: Colors
-                                                      .blue, // Keeping original blue color
+                                                  color: Colors.blue,
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 14,
                                                 ),
@@ -363,6 +372,37 @@ class _WaterLogState extends State<WaterLog> {
                                                 40, // Increased to provide more space for the title
                                             sideTitles: SideTitles(
                                               showTitles: true,
+                                              reservedSize: 40, // Ensure individual labels also have space
+                                              interval: 1.0, // not used, custom logic below
+                                              getTitlesWidget: (value, meta) {
+                                                final minX = minLogMinute;
+                                                final maxX = maxLogMinute;
+                                                if ((value - minX).abs() < 1e-2) {
+                                                  final time = selectedDate.add(Duration(minutes: minX.toInt()));
+                                                  return Padding(
+                                                    padding: const EdgeInsets.only(top: 4.0),
+                                                    child: Text(
+                                                      DateFormat('HH:mm').format(time),
+                                                      style: GoogleFonts.montserrat(fontSize: 11, color: Colors.blue[900]),
+                                                    ),
+                                                  );
+                                                } else if ((value - maxX).abs() < 1e-2) {
+                                                  final time = selectedDate.add(Duration(minutes: maxX.toInt()));
+                                                  return Padding(
+                                                    padding: const EdgeInsets.only(top: 4.0),
+                                                    child: Text(
+                                                      DateFormat('HH:mm').format(time),
+                                                      style: GoogleFonts.montserrat(fontSize: 11, color: Colors.blue[900]),
+                                                    ),
+                                                  );
+                                                }
+                                                return const SizedBox.shrink();
+                                              },
+                                            ),
+                                          ),
+                                          rightTitles: AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: false,
                                               reservedSize:
                                                   40, // Ensure individual labels also have space
                                               interval: 30.0,
@@ -391,11 +431,6 @@ class _WaterLogState extends State<WaterLog> {
                                                   ),
                                                 );
                                               },
-                                            ),
-                                          ),
-                                          rightTitles: const AxisTitles(
-                                            sideTitles: SideTitles(
-                                              showTitles: false,
                                             ),
                                           ),
                                           topTitles: const AxisTitles(
