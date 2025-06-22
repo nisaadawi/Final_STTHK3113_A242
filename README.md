@@ -1,4 +1,4 @@
-# 🐾 HydraPets - Smart Pet Water Dispenser System
+# 🐾 HydraPets - HydraPets: Pet Water Dispenser and Pet Motion Tracker
 
 A comprehensive IoT solution that combines hardware automation with a mobile application to provide intelligent pet water dispensing and monitoring. The system automatically detects pets, monitors water levels, and provides real-time data visualization through a Flutter mobile app.
 
