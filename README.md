@@ -39,8 +39,26 @@ The system ensures your pets always have access to fresh water while providing y
 - **Pet Activity Tracking**: Monitor when pets approach the water dispenser
 - **Historical Data**: Charts and graphs showing water consumption patterns
 - **User Authentication**: Secure login and registration system
-- **Responsive Design**: Beautiful UI with gradient backgrounds and animations
-- **Cross-platform**: Works on both Android and iOS devices
+- **Platform**: Works on Android
+
+**🧑🏻‍💻 Application Interface**
+
+**Login & Register**
+
+![image](https://github.com/user-attachments/assets/fd5be718-3e19-4aae-b180-366fc6caf525)
+
+**Homepage/Dashboard**
+
+![image](https://github.com/user-attachments/assets/4029e992-ff9b-4d33-a47e-4e00a070e6ca)
+
+**Water Logs**
+
+![image](https://github.com/user-attachments/assets/14e756b2-7b64-4f94-be0f-ff3c1f21d614)
+
+**Pet Logs**
+
+![image](https://github.com/user-attachments/assets/63b49c1b-3709-47ba-8ced-6f65748706fb)
+
 
 ### 🔧 System Features
 - **Smart Automation**: Automatic water refill when levels are low
@@ -233,80 +251,5 @@ The system automatically:
 - **Prevents overflow** with intelligent sensor monitoring
 - **Logs all activities** for historical analysis
 
-## 🔌 API Documentation
-
-### Authentication Endpoints
-
-#### POST /login_user.php
-```json
-{
-  "username": "user123",
-  "password": "password123"
-}
-```
-
-#### POST /add_user.php
-```json
-{
-  "username": "newuser",
-  "password": "newpassword"
-}
-```
-
-### Data Logging Endpoints
-
-#### POST /log_water.php
-```json
-{
-  "water_level": 1200,
-  "water_percentage": 75,
-  "water_status": "Normal",
-  "relay_status": "OFF"
-}
-```
-
-#### POST /log_pet.php
-```json
-{
-  "pet_status": "PetDetected",
-  "led_status": "ON"
-}
-```
-
-### Data Retrieval Endpoints
-
-#### GET /get_water_log.php
-Returns array of water log entries
-
-#### GET /get_pet_log.php
-Returns array of pet detection entries
-
-## 🤝 Contributing
-
-1. **Fork the repository**
-2. **Create a feature branch** (`git checkout -b feature/AmazingFeature`)
-3. **Commit your changes** (`git commit -m 'Add some AmazingFeature'`)
-4. **Push to the branch** (`git push origin feature/AmazingFeature`)
-5. **Open a Pull Request**
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Flutter Team** for the amazing cross-platform framework
-- **ESP32 Community** for hardware support and libraries
-- **Syncfusion** for the excellent charting components
-- **Adafruit** for the OLED display library
-
-## 📞 Support
-
-For support and questions:
-- Create an issue in this repository
-- Check the hardware troubleshooting guide
-- Review the API documentation
-
----
 
 **Made with ❤️ for happy pets everywhere! 🐕🐱** 
